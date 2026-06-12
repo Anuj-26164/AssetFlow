@@ -1,0 +1,172 @@
+// Smart Asset Management & Resource Allocation Platform
+// Prisma schema — canonical data model and ERD source
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  user
+}
+
+enum AssetStatus {
+  active
+  retired
+}
+
+enum BookingStatus {
+  pending
+  approved
+  rejected
+  issued
+  returned
+  cancelled
+}
+
+enum NotificationType {
+  approval
+  rejection
+  due_soon
+  overdue
+}
+
+enum HealthCondition {
+  good
+  needs_repair
+  damaged
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(user)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  bookings        Booking[]       @relation("BookingRequester")
+  reviewedBookings Booking[]      @relation("BookingReviewer")
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Category {
+  id     String  @id @default(uuid())
+  name   String  @unique
+  assets Asset[]
+
+  @@map("categories")
+}
+
+model Asset {
+  id                String      @id @default(uuid())
+  name              String
+  categoryId        String      @map("category_id")
+  description       String?
+  quantityTotal     Int         @map("quantity_total")
+  quantityAvailable Int         @map("quantity_available")
+  status            AssetStatus @default(active)
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  category     Category       @relation(fields: [categoryId], references: [id])
+  bookingItems BookingItem[]
+  healthLogs   AssetHealth[]
+
+  @@index([categoryId])
+  @@map("assets")
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  userId     String        @map("user_id")
+  status     BookingStatus @default(pending)
+  startDate  DateTime      @map("start_date") @db.Date
+  endDate    DateTime      @map("end_date") @db.Date
+  reviewedBy String?       @map("reviewed_by")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  user         User           @relation("BookingRequester", fields: [userId], references: [id])
+  reviewer     User?          @relation("BookingReviewer", fields: [reviewedBy], references: [id])
+  items        BookingItem[]
+  issueReturn  IssueReturn?
+
+  @@index([userId])
+  @@index([status])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id        String @id @default(uuid())
+  bookingId String @map("booking_id")
+  assetId   String @map("asset_id")
+  quantity  Int
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id])
+
+  @@index([bookingId])
+  @@index([assetId])
+  @@map("booking_items")
+}
+
+model IssueReturn {
+  id            String    @id @default(uuid())
+  bookingId     String    @unique @map("booking_id")
+  issuedAt      DateTime? @map("issued_at")
+  dueDate       DateTime  @map("due_date") @db.Date
+  returnedAt    DateTime? @map("returned_at")
+  conditionNote String?   @map("condition_note")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("issues_returns")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?  @map("actor_id")
+  action    String
+  entity    String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+model AssetHealth {
+  id        String          @id @default(uuid())
+  assetId   String          @map("asset_id")
+  condition HealthCondition
+  note      String?
+  loggedAt  DateTime        @default(now()) @map("logged_at")
+
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@index([assetId])
+  @@map("asset_health")
+}
