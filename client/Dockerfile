@@ -11,6 +11,9 @@ RUN npm run build
 # --- Serve stage ---
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Template is rendered at container start by the nginx image entrypoint, which
+# substitutes ${PORT} (only) using NGINX_ENVSUBST_FILTER and runs nginx.
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV PORT=80
+ENV NGINX_ENVSUBST_FILTER=PORT
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
