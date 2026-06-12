@@ -164,4 +164,4 @@ See `docs/api-spec.md` for the full API reference and `server/src/prisma/schema.
 ---
 
 ## License
-MIT — built for the Cultural Council, IIT Roorkee hackathon.
+MIT
