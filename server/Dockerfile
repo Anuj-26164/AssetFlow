@@ -13,7 +13,9 @@ COPY . .
 # Generate the Prisma client against the schema
 RUN npx prisma generate
 
+# Railway injects PORT at runtime; 4000 is the local/Compose default.
 EXPOSE 4000
 
-# On boot: apply migrations, then start the server.
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
+# On boot: apply migrations, (idempotently) seed demo data, then start the
+# server. Seeding is best-effort so a seed hiccup never blocks the API.
+CMD ["sh", "-c", "npx prisma migrate deploy && (node src/prisma/seed.js || echo 'seed skipped') && node src/server.js"]

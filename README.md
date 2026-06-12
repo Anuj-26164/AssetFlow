@@ -119,6 +119,33 @@ docker compose exec api npm run db:seed
 
    Web: http://localhost:5173 · API: http://localhost:4000/api
 
+### Option C — Deploy to Railway
+
+The repo ships with per-service `railway.json` files so Railway uses the existing Dockerfiles directly. Create **three services in one Railway project** from this GitHub repo:
+
+1. **Postgres** — add the managed **PostgreSQL** plugin. It exposes a `DATABASE_URL`.
+
+2. **API (server)** — new service from the repo, **Root Directory = `server`**. Railway reads `server/railway.json`, builds the Dockerfile, and on boot runs `prisma migrate deploy`, seeds demo data (idempotent), then starts the API. Set variables:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
+   | `JWT_SECRET` | a long random string |
+   | `JWT_EXPIRES_IN` | `1d` |
+   | `CLIENT_ORIGIN` | the web service's public URL (e.g. `https://assetflow-web.up.railway.app`) |
+
+   `PORT` is injected by Railway automatically — the API reads it. Generate a public domain for this service; you'll need its URL for the client.
+
+3. **Web (client)** — new service from the repo, **Root Directory = `client`**. Railway reads `client/railway.json` and builds the Dockerfile (Nginx serves the SPA on the injected `PORT`). Set one **build-time** variable:
+
+   | Variable | Value |
+   | --- | --- |
+   | `VITE_API_URL` | the API service's public URL + `/api` (e.g. `https://assetflow-api.up.railway.app/api`) |
+
+   `VITE_API_URL` is baked into the bundle at build time (the Dockerfile declares it as an `ARG`), so the browser calls the API's public URL directly. Redeploy the web service after changing it.
+
+> Order: deploy Postgres → API (grab its public URL) → Web (set `VITE_API_URL`) → then set the API's `CLIENT_ORIGIN` to the Web URL and redeploy the API. Demo accounts below are seeded automatically.
+
 ### Demo Accounts (created by the seed)
 
 | Role | Email | Password |
