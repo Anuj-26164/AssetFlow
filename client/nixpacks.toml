@@ -1,0 +1,7 @@
+# Forces Railway/Nixpacks to build the SPA and serve via vite preview.
+# Overrides the auto-detected "npm run dev" start command.
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npx vite preview --host 0.0.0.0 --port ${PORT:-80}"

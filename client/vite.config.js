@@ -18,4 +18,11 @@ export default defineConfig({
       },
     },
   },
+  // vite preview (used by Railway/Nixpacks deployment) — no proxy needed
+  // since VITE_API_URL already points at the API's public URL.
+  preview: {
+    host: "0.0.0.0",
+    port: 80,
+    allowedHosts: ["all"],
+  },
 });
