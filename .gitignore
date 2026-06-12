@@ -32,7 +32,3 @@ npm-debug.log*
 coverage/
 *.tsbuildinfo
 
-# Internal planning docs — not for the public repo
-PRD.md
-plan.md
-PS.md
